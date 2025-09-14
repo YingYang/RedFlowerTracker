@@ -51,6 +51,7 @@ struct ContentView: View {
     @State private var showingAddTransaction = false
     @State private var showingExportSheet = false
     @State private var csvContent = ""
+    @Environment(\.scenePhase) private var scenePhase
     
     private var currentBalance: Int {
         transactions.reduce(0) { balance, transaction in
@@ -69,8 +70,8 @@ struct ContentView: View {
                 // Dashboard
                 DashboardView(balance: currentBalance)
                 
-                // Export Button - Big and Red for testing
-                Button("导出CSV数据") {
+                // Manual Export Button
+                Button("手动导出CSV") {
                     generateCSV()
                 }
                 .frame(height: 50)
@@ -102,6 +103,12 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingExportSheet) {
                 CSVExportView(csvContent: csvContent)
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .inactive {
+                    // App is closing/backgrounding - auto-backup
+                    autoBackupToCSV()
+                }
             }
         }
     }
@@ -137,6 +144,51 @@ struct ContentView: View {
         csvContent = csvString
         showingExportSheet = true
     }
+    
+    private func autoBackupToCSV() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm:ss"
+        
+        var csvString = "Type,Amount,Reason,Date,Time\n"
+        
+        let sortedTransactions = transactions.sorted(by: { $0.date < $1.date })
+        
+        for transaction in sortedTransactions {
+            let type = transaction.type.rawValue
+            let amount = String(transaction.amount)
+            let reason = "\"" + transaction.reason.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+            let date = dateFormatter.string(from: transaction.date)
+            let time = timeFormatter.string(from: transaction.date)
+            
+            csvString += "\(type),\(amount),\(reason),\(date),\(time)\n"
+        }
+        
+        // Save to Documents folder
+        saveCSVToDocuments(csvString)
+    }
+    
+    private func saveCSVToDocuments(_ csvContent: String) {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory,
+                                                               in: .userDomainMask).first else {
+            return
+        }
+        
+        let timestamp = DateFormatter().apply {
+            $0.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        }.string(from: Date())
+        
+        let fileURL = documentsDirectory.appendingPathComponent("xiaohonghua_backup_\(timestamp).csv")
+        
+        do {
+            try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            print("Backup saved to: \(fileURL.path)")
+        } catch {
+            print("Failed to save backup: \(error)")
+        }
+    }
 }
 
 // MARK: - Dashboard View
@@ -145,7 +197,7 @@ struct DashboardView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            Text("当前余额")
+            Text("当前数量")
                 .font(.headline)
                 .foregroundColor(.secondary)
             
@@ -220,7 +272,7 @@ struct AddTransactionView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("交易详情") {
+                Section("记录详情") {
                     Picker("类型", selection: $transactionType) {
                         ForEach(TransactionType.allCases, id: \.self) { type in
                             Text(type.rawValue).tag(type)
@@ -270,7 +322,7 @@ struct AddTransactionView: View {
                     }
                 }
             }
-            .navigationTitle("添加交易")
+            .navigationTitle("添加记录")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -347,6 +399,14 @@ struct CSVExportView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Extensions
+extension DateFormatter {
+    func apply(_ closure: (DateFormatter) -> Void) -> DateFormatter {
+        closure(self)
+        return self
     }
 }
 
