@@ -74,13 +74,13 @@ struct ContentView: View {
                 Button("手动导出CSV") {
                     generateCSV()
                 }
-                .frame(height: 50)
+                .frame(height: 60)
                 .frame(maxWidth: .infinity)
                 .background(Color.red)
                 .foregroundColor(.white)
-                .font(.title2)
-                .cornerRadius(10)
-                .padding()
+                .font(.system(size: 32))
+                .cornerRadius(12)
+                .padding(.horizontal)
                 
                 // Transaction List
                 List {
@@ -96,6 +96,7 @@ struct ContentView: View {
                     Button("添加", systemImage: "plus") {
                         showingAddTransaction = true
                     }
+                    .font(.system(size: 32))
                 }
             }
             .sheet(isPresented: $showingAddTransaction) {
@@ -104,7 +105,7 @@ struct ContentView: View {
             .sheet(isPresented: $showingExportSheet) {
                 CSVExportView(csvContent: csvContent)
             }
-            .onChange(of: scenePhase) { oldPhase, newPhase in
+            .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .inactive {
                     // App is closing/backgrounding - auto-backup
                     autoBackupToCSV()
@@ -196,19 +197,19 @@ struct DashboardView: View {
     let balance: Int
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 24) {
             Text("当前数量")
-                .font(.headline)
+                .font(.system(size: 36, weight: .medium))
                 .foregroundColor(.secondary)
             
             Text("🌺 \(balance)")
-                .font(.system(size: 48, weight: .bold, design: .rounded))
+                .font(.system(size: 96, weight: .bold, design: .rounded))
                 .foregroundColor(balance >= 0 ? .green : .red)
         }
-        .padding()
+        .padding(32)
         .frame(maxWidth: .infinity)
         .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .cornerRadius(16)
         .padding(.horizontal)
     }
 }
@@ -219,29 +220,29 @@ struct TransactionRowView: View {
     
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(transaction.type.rawValue)
-                        .font(.headline)
+                        .font(.system(size: 36, weight: .semibold))
                         .foregroundColor(transaction.type.color)
                     
                     Spacer()
                     
                     Text("\(transaction.type.symbol)\(transaction.amount)")
-                        .font(.headline)
+                        .font(.system(size: 36, weight: .semibold))
                         .foregroundColor(transaction.type.color)
                 }
                 
                 Text(transaction.reason)
-                    .font(.body)
+                    .font(.system(size: 32))
                     .lineLimit(2)
                 
                 Text(transaction.date, style: .date)
-                    .font(.caption)
+                    .font(.system(size: 24))
                     .foregroundColor(.secondary)
                 
                 Text(transaction.date, style: .time)
-                    .font(.caption)
+                    .font(.system(size: 24))
                     .foregroundColor(.secondary)
             }
             
@@ -250,11 +251,11 @@ struct TransactionRowView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 60, height: 60)
-                    .cornerRadius(8)
+                    .frame(width: 120, height: 120)
+                    .cornerRadius(12)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
     }
 }
 
@@ -275,19 +276,24 @@ struct AddTransactionView: View {
                 Section("记录详情") {
                     Picker("类型", selection: $transactionType) {
                         ForEach(TransactionType.allCases, id: \.self) { type in
-                            Text(type.rawValue).tag(type)
+                            Text(type.rawValue)
+                                .font(.system(size: 32))
+                                .tag(type)
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     
                     HStack {
                         Text("🌺")
+                            .font(.system(size: 32))
                         TextField("数量", text: $amount)
                             .keyboardType(.numberPad)
+                            .font(.system(size: 32))
                     }
                     
                     TextField("原因", text: $reason, axis: .vertical)
                         .lineLimit(3...6)
+                        .font(.system(size: 32))
                 }
                 
                 Section("照片 (可选)") {
@@ -299,11 +305,12 @@ struct AddTransactionView: View {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(height: 200)
-                                .cornerRadius(12)
+                                .frame(height: 400)
+                                .cornerRadius(16)
                         } else {
                             Label("选择照片", systemImage: "photo.on.rectangle")
-                                .frame(height: 100)
+                                .font(.system(size: 32))
+                                .frame(height: 200)
                         }
                     }
                     .onChange(of: selectedPhoto) { _, newItem in
@@ -319,6 +326,7 @@ struct AddTransactionView: View {
                             photoData = nil
                             selectedPhoto = nil
                         }
+                        .font(.system(size: 28))
                     }
                 }
             }
@@ -329,12 +337,14 @@ struct AddTransactionView: View {
                     Button("取消") {
                         dismiss()
                     }
+                    .font(.system(size: 32))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
                         saveTransaction()
                     }
+                    .font(.system(size: 32))
                     .disabled(amount.isEmpty || reason.isEmpty)
                 }
             }
@@ -363,32 +373,34 @@ struct CSVExportView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: 40) {
                 Text("CSV 数据")
-                    .font(.headline)
+                    .font(.system(size: 36, weight: .semibold))
                 
                 Text("复制下面的内容并粘贴到 Google Sheets")
-                    .font(.subheadline)
+                    .font(.system(size: 28))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                 
                 ScrollView {
                     Text(csvContent)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: 24, design: .monospaced))
                         .textSelection(.enabled)
-                        .padding()
+                        .padding(24)
                         .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                        .cornerRadius(12)
                 }
                 
                 Button("复制到剪贴板") {
                     UIPasteboard.general.string = csvContent
                 }
                 .buttonStyle(.borderedProminent)
+                .font(.system(size: 32))
+                .frame(height: 60)
                 
                 Spacer()
             }
-            .padding()
+            .padding(32)
             .navigationTitle("导出 CSV")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -396,6 +408,7 @@ struct CSVExportView: View {
                     Button("完成") {
                         dismiss()
                     }
+                    .font(.system(size: 32))
                 }
             }
         }
